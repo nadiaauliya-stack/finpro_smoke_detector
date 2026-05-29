@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoke Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    background: #1a1f2e;
+  }
+
+  /* Sky gradient */
+  .bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(180deg,
+      #0d1117 0%,
+      #1a1f2e 25%,
+      #2a3040 45%,
+      #3d3020 65%,
+      #4a3818 80%,
+      #3a2e18 100%
+    );
+  }
+
+  /* Smog layers */
+  .smog {
+    position: fixed;
+    z-index: 1;
+    border-radius: 50%;
+    filter: blur(38px);
+    pointer-events: none;
+  }
+  .smog-1 { width: 520px; height: 180px; top: 20%; left: -80px;  background: rgba(120,100,50,0.22); }
+  .smog-2 { width: 400px; height: 140px; top: 35%; right: -60px; background: rgba(80,90,60,0.18); }
+  .smog-3 { width: 600px; height: 120px; top: 50%; left: -100px; background: rgba(60,70,40,0.15); }
+  .smog-4 { width: 350px; height: 100px; top: 10%; right: 0;     background: rgba(100,80,40,0.12); }
+
+  /* City silhouette SVG */
+  .city-svg {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Stars */
+  .stars {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(255,255,200,0.6);
+    border-radius: 50%;
+  }
+
+  /* Smoke particles */
+  .smoke-container {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .smoke-puff {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(150,140,120,0.09);
+    filter: blur(12px);
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    0%   { transform: translateY(0) scale(1);   opacity: 0.12; }
+    50%  { opacity: 0.08; }
+    100% { transform: translateY(-300px) scale(2.5); opacity: 0; }
+  }
+
+  /* APP WRAPPER */
+  .app {
+    width: 100%;
+    max-width: 560px;
+    background: rgba(20,25,38,0.72);
+    backdrop-filter: blur(14px);
+    border-radius: 28px;
+    padding: 18px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,200,80,0.06);
+    position: relative;
+    z-index: 10;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 10px 18px 10px 14px;
+    margin-bottom: 14px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+  }
+  .header-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: #f0a830;
+    line-height: 1.7;
+    text-shadow: 0 0 12px rgba(240,168,48,0.5);
+    letter-spacing: 1px;
+  }
+  .header-icon {
+    margin-left: auto;
+    font-size: 32px;
+    filter: drop-shadow(0 0 8px rgba(240,100,30,0.6));
+  }
+  .header-status-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #ff4d2e;
+    box-shadow: 0 0 8px #ff4d2e;
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* GRID */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* CARDS */
+  .card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 18px;
+    padding: 14px;
+    border: 1.5px solid rgba(255,255,255,0.09);
+    box-shadow: 0 3px 16px rgba(0,0,0,0.25);
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #8bb8d4;
+    margin-bottom: 10px;
+  }
+
+  /* CLOUD SYNC */
+  .card-cloud { grid-column: 1; }
+  .field-label {
+    font-size: 9px; font-weight: 700; color: #5a7a90;
+    letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase;
+  }
+  .field-input {
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-family: 'Nunito', sans-serif;
+    color: #a0c0d8;
+    outline: none;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+  .field-input:focus { border-color: #f0a830; }
+  .field-input::placeholder { color: #3a5060; }
+
+  /* MODE */
+  .card-mode { grid-column: 2; grid-row: 1; }
+  .mode-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.06);
+    border-radius: 30px;
+    padding: 3px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    margin-top: 4px;
+  }
+  .mode-btn {
+    flex: 1; padding: 7px 0; border: none; border-radius: 25px;
+    font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 800;
+    cursor: pointer; transition: all 0.25s; background: transparent; color: #4a6a80;
+  }
+  .mode-btn.active-auto  { background: #f0a830; color: #1a1208; box-shadow: 0 2px 10px rgba(240,168,48,0.4); }
+  .mode-btn.active-manual { background: #e0e0e0; color: #1a1a1a; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+  /* HARDWARE LINK */
+  .card-hw { grid-column: 1 / 3; }
+  .hw-inner { display: flex; gap: 12px; align-items: flex-start; }
+  .hw-left { flex: 1; }
+  .hw-btn {
+    width: 100%;
+    background: #1a6fa8;
+    border: none; border-radius: 12px; padding: 10px;
+    font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 800;
+    color: white; cursor: pointer; margin-bottom: 8px;
+    box-shadow: 0 3px 0 #0d4070, 0 5px 14px rgba(26,111,168,0.35);
+    transition: all 0.15s; letter-spacing: 0.3px;
+  }
+  .hw-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0d4070; }
+  .hw-input {
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 7px 10px;
+    font-size: 11px; font-family: 'Nunito', sans-serif;
+    color: #a0c0d8; outline: none;
+  }
+
+  /* BLUETOOTH STATUS */
+  .bt-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px; padding: 12px 14px;
+    border: 1.5px solid rgba(255,255,255,0.09);
+    min-width: 130px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+  }
+  .bt-icon-wrap {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; transition: all 0.4s; position: relative;
+  }
+  .bt-icon-wrap.connected {
+    background: rgba(26,111,168,0.25);
+    box-shadow: 0 0 0 0 rgba(26,111,168,0.5);
+    animation: bt-pulse 2s infinite;
+  }
+  .bt-icon-wrap.disconnected { background: rgba(80,80,80,0.15); }
+  @keyframes bt-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(26,111,168,0.5); }
+    70%  { box-shadow: 0 0 0 10px rgba(26,111,168,0); }
+    100% { box-shadow: 0 0 0 0 rgba(26,111,168,0); }
+  }
+  .bt-status-text { font-size: 10px; font-weight: 800; letter-spacing: 0.3px; transition: color 0.3s; }
+  .bt-status-text.connected { color: #5BC8F5; }
+  .bt-status-text.disconnected { color: #555; }
+  .bt-dot { width: 8px; height: 8px; border-radius: 50%; transition: all 0.3s; }
+  .bt-dot.connected { background: #4CD964; box-shadow: 0 0 6px #4CD964; }
+  .bt-dot.disconnected { background: #444; }
+  .bt-toggle-btn {
+    font-size: 9px; font-weight: 800; padding: 4px 10px; border-radius: 8px;
+    border: none; cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.2s;
+  }
+  .bt-toggle-btn.connected { background: rgba(255,80,80,0.2); color: #ff6060; }
+  .bt-toggle-btn.disconnected { background: rgba(26,111,168,0.25); color: #5BC8F5; }
+
+  /* GAS DETECTION */
+  .card-gas {
+    grid-column: 1 / 3;
+    background: linear-gradient(135deg, rgba(60,35,10,0.6), rgba(80,50,10,0.5));
+    border: 1.5px solid rgba(240,168,48,0.25);
+  }
+  .gas-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .gas-title { font-size: 13px; font-weight: 800; color: #f0a830; }
+  .gas-subtitle { font-size: 9px; font-weight: 700; color: #a07030; letter-spacing: 0.4px; text-transform: uppercase; }
+  .gas-status-badge {
+    padding: 4px 12px; border-radius: 20px; font-size: 10px;
+    font-weight: 800; letter-spacing: 0.5px; transition: all 0.3s;
+  }
+  .gas-status-badge.safe  { background: #1e6e30; color: #7fff9a; box-shadow: 0 2px 10px rgba(30,110,48,0.4); }
+  .gas-status-badge.danger { background: #FF3B30; color: white; box-shadow: 0 2px 10px rgba(255,59,48,0.6); animation: pulse-danger 0.8s infinite; }
+  @keyframes pulse-danger {
+    0%,100% { box-shadow: 0 2px 8px rgba(255,59,48,0.5); }
+    50%     { box-shadow: 0 2px 24px rgba(255,59,48,1); }
+  }
+  .gas-meter-wrap {
+    background: rgba(0,0,0,0.3); border-radius: 20px; height: 18px;
+    overflow: hidden; margin-bottom: 8px; border: 1.5px solid rgba(240,168,48,0.2);
+    position: relative;
+  }
+  .gas-meter-fill {
+    height: 100%; border-radius: 20px; transition: width 0.4s ease;
+    background: linear-gradient(90deg, #2ecc71, #f0a830, #FF3B30);
+    background-size: 400px 100%;
+  }
+  .gas-meter-threshold {
+    position: absolute; top: 0; bottom: 0; left: 48.8%;
+    width: 2px; background: rgba(255,120,0,0.7);
+  }
+  .gas-meter-threshold::after {
+    content: '500'; position: absolute; top: -14px; left: -10px;
+    font-size: 8px; font-weight: 800; color: rgba(255,150,50,0.9); font-family: 'Nunito', sans-serif;
+  }
+  .gas-value-row { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 12px; }
+  .gas-value-big { font-size: 36px; font-weight: 800; color: #f0a830; line-height: 1; transition: color 0.3s; }
+  .gas-value-big.danger { color: #FF3B30; }
+  .gas-value-unit { font-size: 11px; font-weight: 700; color: #a07030; margin-bottom: 6px; }
+  .gas-value-sensor { font-size: 9px; font-weight: 700; color: #a07030; margin-bottom: 6px; margin-left: auto; }
+  .relay-row { display: flex; gap: 10px; align-items: center; }
+  .relay-label { font-size: 9px; font-weight: 700; color: #a07030; text-transform: uppercase; letter-spacing: 0.4px; margin-right: 2px; }
+  .relay-btn {
+    width: 52px; height: 52px; border-radius: 14px; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; transition: all 0.18s; position: relative;
+  }
+  .relay-btn.on  { background: #f0a830; box-shadow: 0 4px 0 #a06010, 0 6px 14px rgba(240,168,48,0.4); color: #1a1208; }
+  .relay-btn.off { background: rgba(255,255,255,0.07); box-shadow: 0 3px 0 rgba(0,0,0,0.3); color: #444; border: 1.5px solid rgba(255,255,255,0.08); }
+  .relay-btn:active { transform: translateY(3px); box-shadow: none !important; }
+  .relay-btn.on::after {
+    content: ''; position: absolute; top: 6px; right: 6px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #7FFFB0; box-shadow: 0 0 6px #4CD964;
+  }
+  .relay-auto-tag { font-size: 9px; font-weight: 800; background: #c07010; color: #fff8e0; padding: 3px 8px; border-radius: 8px; margin-left: auto; letter-spacing: 0.3px; }
+  .relay-auto-tag.safe-tag { background: #1e6e30; color: #7fff9a; }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+
+<!-- Smog layers -->
+<div class="smog smog-1"></div>
+<div class="smog smog-2"></div>
+<div class="smog smog-3"></div>
+<div class="smog smog-4"></div>
+
+<!-- Smoke puffs -->
+<div class="smoke-container" id="smoke-container"></div>
+
+<!-- City silhouette -->
+<svg class="city-svg" viewBox="0 0 1200 220" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+  <!-- Back buildings (darker) -->
+  <g fill="#0d1117" opacity="0.9">
+    <rect x="0"   y="120" width="60"  height="100"/>
+    <rect x="55"  y="80"  width="40"  height="140"/>
+    <rect x="90"  y="100" width="55"  height="120"/>
+    <rect x="140" y="60"  width="35"  height="160"/>
+    <rect x="170" y="90"  width="50"  height="130"/>
+    <rect x="215" y="50"  width="30"  height="170"/>
+    <rect x="240" y="75"  width="45"  height="145"/>
+    <rect x="280" y="110" width="40"  height="110"/>
+    <rect x="315" y="65"  width="30"  height="155"/>
+    <rect x="340" y="85"  width="55"  height="135"/>
+    <rect x="390" y="40"  width="25"  height="180"/>
+    <rect x="410" y="70"  width="45"  height="150"/>
+    <rect x="450" y="100" width="50"  height="120"/>
+    <rect x="495" y="55"  width="35"  height="165"/>
+    <rect x="525" y="80"  width="40"  height="140"/>
+    <rect x="560" y="45"  width="30"  height="175"/>
+    <rect x="585" y="90"  width="55"  height="130"/>
+    <rect x="635" y="70"  width="30"  height="150"/>
+    <rect x="660" y="50"  width="45"  height="170"/>
+    <rect x="700" y="85"  width="40"  height="135"/>
+    <rect x="735" y="60"  width="35"  height="160"/>
+    <rect x="765" y="95"  width="50"  height="125"/>
+    <rect x="810" y="45"  width="30"  height="175"/>
+    <rect x="835" y="75"  width="45"  height="145"/>
+    <rect x="875" y="100" width="40"  height="120"/>
+    <rect x="910" y="55"  width="35"  height="165"/>
+    <rect x="940" y="80"  width="50"  height="140"/>
+    <rect x="985" y="40"  width="30"  height="180"/>
+    <rect x="1010" y="70" width="45"  height="150"/>
+    <rect x="1050" y="90" width="40"  height="130"/>
+    <rect x="1085" y="60" width="55"  height="160"/>
+    <rect x="1135" y="85" width="40"  height="135"/>
+    <rect x="1170" y="50" width="30"  height="170"/>
+  </g>
+  <!-- Front buildings (slightly lighter) -->
+  <g fill="#141820">
+    <rect x="0"   y="150" width="70"  height="70"/>
+    <rect x="65"  y="130" width="50"  height="90"/>
+    <rect x="110" y="140" width="45"  height="80"/>
+    <rect x="150" y="115" width="60"  height="105"/>
+    <rect x="205" y="145" width="40"  height="75"/>
+    <rect x="240" y="125" width="55"  height="95"/>
+    <rect x="290" y="155" width="45"  height="65"/>
+    <rect x="330" y="120" width="50"  height="100"/>
+    <rect x="375" y="140" width="60"  height="80"/>
+    <rect x="430" y="110" width="45"  height="110"/>
+    <rect x="470" y="148" width="55"  height="72"/>
+    <rect x="520" y="130" width="50"  height="90"/>
+    <rect x="565" y="115" width="60"  height="105"/>
+    <rect x="620" y="145" width="45"  height="75"/>
+    <rect x="660" y="125" width="55"  height="95"/>
+    <rect x="710" y="138" width="50"  height="82"/>
+    <rect x="755" y="112" width="60"  height="108"/>
+    <rect x="810" y="148" width="45"  height="72"/>
+    <rect x="850" y="128" width="55"  height="92"/>
+    <rect x="900" y="140" width="50"  height="80"/>
+    <rect x="945" y="115" width="60"  height="105"/>
+    <rect x="1000" y="145" width="45" height="75"/>
+    <rect x="1040" y="130" width="55" height="90"/>
+    <rect x="1090" y="118" width="50" height="102"/>
+    <rect x="1135" y="145" width="65" height="75"/>
+  </g>
+  <!-- Windows (tiny glows) -->
+  <g fill="#f0c060" opacity="0.35">
+    <rect x="60"  y="88"  width="4" height="4"/>
+    <rect x="68"  y="88"  width="4" height="4"/>
+    <rect x="60"  y="96"  width="4" height="4"/>
+    <rect x="150" y="68"  width="4" height="4"/>
+    <rect x="158" y="68"  width="4" height="4"/>
+    <rect x="150" y="76"  width="4" height="4"/>
+    <rect x="220" y="58"  width="4" height="4"/>
+    <rect x="228" y="58"  width="4" height="4"/>
+    <rect x="395" y="48"  width="4" height="4"/>
+    <rect x="403" y="48"  width="4" height="4"/>
+    <rect x="500" y="62"  width="4" height="4"/>
+    <rect x="508" y="62"  width="4" height="4"/>
+    <rect x="500" y="70"  width="4" height="4"/>
+    <rect x="565" y="52"  width="4" height="4"/>
+    <rect x="665" y="58"  width="4" height="4"/>
+    <rect x="673" y="58"  width="4" height="4"/>
+    <rect x="740" y="68"  width="4" height="4"/>
+    <rect x="748" y="68"  width="4" height="4"/>
+    <rect x="815" y="52"  width="4" height="4"/>
+    <rect x="990" y="48"  width="4" height="4"/>
+    <rect x="998" y="48"  width="4" height="4"/>
+    <rect x="990" y="56"  width="4" height="4"/>
+  </g>
+  <!-- Chimneys with smoke -->
+  <g fill="#0d1117">
+    <rect x="215" y="34" width="6" height="18"/>
+    <rect x="392" y="24" width="6" height="18"/>
+    <rect x="558" y="29" width="6" height="18"/>
+    <rect x="812" y="28" width="6" height="18"/>
+    <rect x="986" y="24" width="6" height="18"/>
+  </g>
+  <!-- Ground -->
+  <rect x="0" y="218" width="1200" height="4" fill="#0a0d14"/>
+</svg>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-status-dot"></div>
+    <div class="header-title">SMOKE<br>DETECTOR</div>
+    <div class="header-icon">🏭</div>
+  </div>
+
+  <div class="grid">
+
+    <!-- CLOUD SYNC -->
+    <div class="card card-cloud">
+      <div class="card-title">☁️ Cloud Sync (Firebase)</div>
+      <div class="field-label">Api Key</div>
+      <input class="field-input" type="text" placeholder="AIzaSy...">
+      <div class="field-label">Database URL</div>
+      <input class="field-input" type="text" placeholder="https://project.firebaseio.com">
+      <div class="field-label">Node</div>
+      <input class="field-input" type="text" placeholder="/sensor/gas">
+    </div>
+
+    <!-- MODE -->
+    <div class="card card-mode">
+      <div class="card-title">Mode</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active-auto" id="btn-auto" onclick="setMode('auto')">Otomatic</button>
+        <button class="mode-btn" id="btn-manual" onclick="setMode('manual')">Manual</button>
+      </div>
+    </div>
+
+    <!-- HARDWARE LINK + BLUETOOTH -->
+    <div class="card card-hw">
+      <div class="card-title">🔗 Hardware link (Micro:bit)</div>
+      <div class="hw-inner">
+        <div class="hw-left">
+          <button class="hw-btn" id="hw-connect-btn" onclick="toggleBluetooth()">🔵 Connect Bluetooth</button>
+          <input class="hw-input" type="text" placeholder="Device address...">
+        </div>
+        <div class="bt-card">
+          <div class="bt-icon-wrap disconnected" id="bt-icon">📶</div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <div class="bt-dot disconnected" id="bt-dot"></div>
+            <span class="bt-status-text disconnected" id="bt-text">Disconnected</span>
+          </div>
+          <button class="bt-toggle-btn disconnected" id="bt-toggle" onclick="toggleBluetooth()">Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAS DETECTION -->
+    <div class="card card-gas">
+      <div class="gas-header">
+        <div>
+          <div class="gas-title">💨 Gas Detection (MQ-9)</div>
+          <div class="gas-subtitle">Kontrol Relay Buzzer</div>
+        </div>
+        <div class="gas-status-badge safe" id="gas-badge">AMAN</div>
+      </div>
+      <div style="position:relative; margin-bottom: 18px;">
+        <div class="gas-meter-wrap">
+          <div class="gas-meter-fill" id="gas-fill" style="width: 32%"></div>
+          <div class="gas-meter-threshold"></div>
+        </div>
+      </div>
+      <div class="gas-value-row">
+        <div class="gas-value-big" id="gas-val">328</div>
+        <div class="gas-value-unit">/ 1023</div>
+        <div class="gas-value-sensor">MQ-9 • Pin P0</div>
+      </div>
+      <div class="relay-row">
+        <span class="relay-label">Relay Buzzer</span>
+        <button class="relay-btn on"  id="relay-on"  onclick="setRelay(true)">⏻</button>
+        <button class="relay-btn off" id="relay-off" onclick="setRelay(false)">⏻</button>
+        <div class="relay-auto-tag safe-tag" id="auto-tag">AUTO: OFF</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Generate stars
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top  = Math.random() * 55 + '%';
+    s.style.opacity = (Math.random() * 0.5 + 0.1).toFixed(2);
+    s.style.width = s.style.height = (Math.random() * 1.5 + 1) + 'px';
+    starsEl.appendChild(s);
+  }
+
+  // Generate smoke puffs from chimney positions
+  const smokeEl = document.getElementById('smoke-container');
+  const chimneyPcts = [18, 33, 47, 68, 82];
+  chimneyPcts.forEach(pct => {
+    for (let i = 0; i < 3; i++) {
+      const p = document.createElement('div');
+      p.className = 'smoke-puff';
+      const size = 40 + Math.random() * 50;
+      p.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:calc(${pct}% + ${(Math.random()-0.5)*30}px);
+        bottom: ${18 + Math.random()*8}%;
+        animation-duration: ${5 + Math.random()*4}s;
+        animation-delay: ${Math.random()*4}s;
+      `;
+      smokeEl.appendChild(p);
+    }
+  });
+
+  // App logic
+  let mode = 'auto', gasValue = 328, relayOn = false, btConnected = false;
+
+  function toggleBluetooth() {
+    btConnected = !btConnected;
+    const icon = document.getElementById('bt-icon');
+    const dot  = document.getElementById('bt-dot');
+    const text = document.getElementById('bt-text');
+    const toggle = document.getElementById('bt-toggle');
+    const btn  = document.getElementById('hw-connect-btn');
+    if (btConnected) {
+      icon.className = 'bt-icon-wrap connected'; icon.textContent = '📡';
+      dot.className = 'bt-dot connected';
+      text.className = 'bt-status-text connected'; text.textContent = 'Connected';
+      toggle.className = 'bt-toggle-btn connected'; toggle.textContent = 'Disconnect';
+      btn.textContent = '✅ Connected';
+      btn.style.background = '#1a6e30';
+      btn.style.boxShadow = '0 3px 0 #0d3d18, 0 5px 14px rgba(30,110,48,0.35)';
+    } else {
+      icon.className = 'bt-icon-wrap disconnected'; icon.textContent = '📶';
+      dot.className = 'bt-dot disconnected';
+      text.className = 'bt-status-text disconnected'; text.textContent = 'Disconnected';
+      toggle.className = 'bt-toggle-btn disconnected'; toggle.textContent = 'Connect';
+      btn.textContent = '🔵 Connect Bluetooth';
+      btn.style.background = '#1a6fa8';
+      btn.style.boxShadow = '0 3px 0 #0d4070, 0 5px 14px rgba(26,111,168,0.35)';
+    }
+  }
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById('btn-auto').className = 'mode-btn ' + (m==='auto' ? 'active-auto' : '');
+    document.getElementById('btn-manual').className = 'mode-btn ' + (m==='manual' ? 'active-manual' : '');
+  }
+
+  function setRelay(on) {
+    if (mode === 'auto') return;
+    relayOn = on; updateRelayUI();
+  }
+
+  function updateRelayUI() {
+    document.getElementById('relay-on').className  = 'relay-btn ' + (relayOn  ? 'on' : 'off');
+    document.getElementById('relay-off').className = 'relay-btn ' + (!relayOn ? 'on' : 'off');
+  }
+
+  function updateGas(val) {
+    gasValue = Math.max(0, Math.min(1023, val));
+    const pct = (gasValue / 1023 * 100).toFixed(1);
+    const danger = gasValue > 500;
+    document.getElementById('gas-val').textContent = gasValue;
+    document.getElementById('gas-val').className = 'gas-value-big' + (danger ? ' danger' : '');
+    document.getElementById('gas-fill').style.width = pct + '%';
+    const badge = document.getElementById('gas-badge');
+    const tag   = document.getElementById('auto-tag');
+    if (danger) {
+      badge.textContent = 'BAHAYA!'; badge.className = 'gas-status-badge danger';
+      if (mode === 'auto') { relayOn = true; tag.textContent = 'AUTO: ON'; tag.className = 'relay-auto-tag'; }
+    } else {
+      badge.textContent = 'AMAN'; badge.className = 'gas-status-badge safe';
+      if (mode === 'auto') { relayOn = false; tag.textContent = 'AUTO: OFF'; tag.className = 'relay-auto-tag safe-tag'; }
+    }
+    updateRelayUI();
+  }
+
+  let dir = 1, sim = 328;
+  setInterval(() => {
+    sim += dir * (Math.random() * 18 + 4);
+    if (sim > 780) dir = -1;
+    if (sim < 100) dir = 1;
+    updateGas(Math.round(sim));
+  }, 900);
+</script>
+</body>
+</html>
